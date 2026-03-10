@@ -553,7 +553,7 @@ async function initSession(mode) {
                      document.getElementById('saveNotice').style.display = 'none';
                  } else {
                      activeFileHandle = await window.showSaveFilePicker({ 
-                         suggestedName: 'tony_grades.csv',
+                         suggestedName: 'course_grades.csv',
                          types: [{ description: 'CSV Files', accept: { 'text/csv': ['.csv'] } }]
                      });
                      handleSave();
@@ -564,7 +564,7 @@ async function initSession(mode) {
          function fallbackSave(content) {
              const a = document.createElement('a');
              a.href = URL.createObjectURL(new Blob([content], {type: 'text/csv;charset=utf-8;'}));
-             a.download = 'tony_grades.csv';
+             a.download = 'course_grades.csv';
              a.click();
              document.getElementById('saveNotice').style.display = 'none';
          }
@@ -758,3 +758,4 @@ function shareSnapshot() {
       </script>
    </body>
 </html>
+
