@@ -327,12 +327,11 @@
                </div>
             </div>
             <div class="action-btns">
-               <button class="btn-excel btn-import" onclick="document.getElementById('csvInput').click()">📥 Import CSV</button>
+               <button class="btn-excel btn-import" onclick="loadOrImportCSV()">📥 Import CSV</button>
                <button class="btn-excel" onclick="exportToExcel()">📊 Export CSV</button>
 			   <button class="btn-import" onclick="shareSnapshot()">
     <span>📸</span> Snapshot
 </button>
-               <input type="file" id="csvInput" style="display:none" accept=".csv" onchange="importFromExcel(event)">
             </div>
          </div>
          <div class="dashboard-row">
@@ -484,31 +483,49 @@ const careerData = {
          }, 3000);
          });
          
+         // NEW UNIFIED CSV LOADER
+async function loadOrImportCSV() {
+    try {
+        const [handle] = await window.showOpenFilePicker({
+            types: [{ description: 'CSV Files', accept: { 'text/csv': ['.csv'] } }]
+        });
+        activeFileHandle = handle;
+        const file = await handle.getFile();
+        const csvText = await file.text();
 
-         // NEW UNIFIED INITIALIZATION
+        const rows = csvText.split('\n').slice(1); // Skip header
+        const newCourses = [];
+        rows.forEach((r, idx) => {
+            if (!r.trim()) return; // Skip empty lines
+            const cols = r.split(',');
+            if (cols.length >= 4) {
+                newCourses.push({
+                    year: parseInt(cols[0]),
+                    name: cols[1].replace(/"/g, ''), // Handle quoted names simply
+                    grade: parseInt(cols[2]),
+                    ects: parseFloat(cols[3]),
+                    timestamp: Date.now() + idx
+                });
+            }
+        });
+        courses = newCourses; // Replace current courses
+        render();
+        document.getElementById('saveNotice').style.display = 'none'; // Data is from a file, so it's "saved"
+        return true; // Indicate success
+    } catch (e) {
+        console.log("User cancelled or file error:", e);
+        return false; // Indicate failure/cancellation
+    }
+}
 async function initSession(mode) {
     const welcomeSection = document.getElementById('welcome-section');
     const mainApp = document.querySelector('.container');
 
     if (mode === 'load') {
-        try {
-            // Using the modern File System Access API as you had it
-            const [handle] = await window.showOpenFilePicker({ 
-                types: [{ description: 'JSON', accept: {'application/json': ['.json']} }] 
-            });
-            activeFileHandle = handle;
-            const file = await handle.getFile();
-            const data = JSON.parse(await file.text());
-            
-            // Handle both simple arrays or object-wrapped data
-            courses = data.courses || data || [];
-            
-            // Success: Switch frames
+        const success = await loadOrImportCSV();
+        if (success) {
             welcomeSection.style.display = 'none';
             mainApp.style.display = 'block';
-            render();
-        } catch (e) {
-            console.log("User cancelled or file error:", e);
         }
     } else {
         // Mode is 'new'
@@ -522,97 +539,93 @@ async function initSession(mode) {
 
          
          async function handleSave() {
-             const payload = JSON.stringify({ courses }, null, 2);
+             let csvContent = "Year,Course,Grade,ECTS\n";
+             courses.forEach(c => {
+                 const name = c.name.replace(/,/g, ""); // Remove commas to avoid breaking CSV
+                 csvContent += `${c.year},${name},${c.grade},${c.ects}\n`;
+             });
+
              try {
                  if (activeFileHandle) {
                      const writable = await activeFileHandle.createWritable();
-                     await writable.write(payload);
+                     await writable.write(csvContent);
                      await writable.close();
                      document.getElementById('saveNotice').style.display = 'none';
                  } else {
-                     activeFileHandle = await window.showSaveFilePicker({ suggestedName: 'tony_grades.json' });
+                     activeFileHandle = await window.showSaveFilePicker({ 
+                         suggestedName: 'tony_grades.csv',
+                         types: [{ description: 'CSV Files', accept: { 'text/csv': ['.csv'] } }]
+                     });
                      handleSave();
                  }
-             } catch (e) { fallbackSave(payload); }
+             } catch (e) { fallbackSave(csvContent); }
          }
          
          function fallbackSave(content) {
              const a = document.createElement('a');
-             a.href = URL.createObjectURL(new Blob([content], {type: 'application/json'}));
-             a.download = 'tony_grades.json';
+             a.href = URL.createObjectURL(new Blob([content], {type: 'text/csv;charset=utf-8;'}));
+             a.download = 'tony_grades.csv';
              a.click();
              document.getElementById('saveNotice').style.display = 'none';
          }
          
          function addCourse() {
-             const n = document.getElementById('courseName');
-             const g = parseInt(document.getElementById('courseGrade').value);
-             const e = parseFloat(document.getElementById('courseECTS').value);
-             const y = parseInt(document.getElementById('courseYear').value);
-             if (!n.value) return;
-             courses.unshift({ name: n.value, grade: g, ects: e, year: y, timestamp: Date.now() });
-             n.value = '';
-             document.getElementById('saveNotice').style.display = 'flex';
-             render();
+            const n = document.getElementById('courseName');
+            const g = parseInt(document.getElementById('courseGrade').value);
+            const e = parseFloat(document.getElementById('courseECTS').value);
+            const y = parseInt(document.getElementById('courseYear').value);
+            if (!n.value) return;
+            courses.unshift({ name: n.value, grade: g, ects: e, year: y, timestamp: Date.now() });
+            n.value = '';
+            document.getElementById('saveNotice').style.display = 'flex';
+            render();
          }
          
          function deleteCourse(ts) {
-             courses = courses.filter(c => c.timestamp !== ts);
-             document.getElementById('saveNotice').style.display = 'flex';
-             render();
+            courses = courses.filter(c => c.timestamp !== ts);
+            document.getElementById('saveNotice').style.display = 'flex';
+            render();
          }
          
          function render() {
-             const tbody = document.getElementById('courseTableBody');
-             tbody.innerHTML = '';
-             let tw = 0, te = 0;
-             let yr = { 1: {w:0, e:0}, 2: {w:0, e:0}, 3: {w:0, e:0}, 4: {w:0, e:0} };
-         
-             courses.forEach(c => {
-                 tw += (c.grade * c.ects); te += c.ects;
-                 yr[c.year].w += (c.grade * c.ects); yr[c.year].e += c.ects;
-                 tbody.innerHTML += `<tr><td>Y${c.year}</td><td>${c.name}</td><td><strong>${c.grade}</strong></td><td>${c.ects}</td><td><button class="delete-btn" onclick="deleteCourse(${c.timestamp})">×</button></td></tr>`;
-             });
-         
-             const gpa = te > 0 ? (tw / te) : 0;
-             const rem = Math.max(0, 240 - te);
-             
-             document.getElementById('currentGPA').innerText = gpa.toFixed(2);
-             document.getElementById('progressCircle').style.background = `conic-gradient(var(--uoa-blue) ${(gpa/10)*360}deg, #ededed 0deg)`;
-             document.getElementById('maxGPA').innerText = ((tw + (rem * 10)) / 240).toFixed(2);
-             document.getElementById('minGPA').innerText = ((tw + (rem * 5)) / 240).toFixed(2);
-         
-             for(let i=1; i<=4; i++) {
-                 document.getElementById(`y${i}gpa`).innerText = yr[i].e > 0 ? (yr[i].w / yr[i].e).toFixed(2) : "-";
-             }
-             updateCareerTier(gpa);
+            const tbody = document.getElementById('courseTableBody');
+            tbody.innerHTML = '';
+            let tw = 0, te = 0;
+            let yr = { 1: {w:0, e:0}, 2: {w:0, e:0}, 3: {w:0, e:0}, 4: {w:0, e:0} };
+        
+            courses.forEach(c => {
+                tw += (c.grade * c.ects); te += c.ects;
+                yr[c.year].w += (c.grade * c.ects); yr[c.year].e += c.ects;
+                tbody.innerHTML += `<tr><td>Y${c.year}</td><td>${c.name}</td><td><strong>${c.grade}</strong></td><td>${c.ects}</td><td><button class="delete-btn" onclick="deleteCourse(${c.timestamp})">×</button></td></tr>`;
+            });
+        
+            const gpa = te > 0 ? (tw / te) : 0;
+            const rem = Math.max(0, 240 - te);
+            
+            document.getElementById('currentGPA').innerText = gpa.toFixed(2);
+            document.getElementById('progressCircle').style.background = `conic-gradient(var(--uoa-blue) ${(gpa/10)*360}deg, #ededed 0deg)`;
+            document.getElementById('maxGPA').innerText = ((tw + (rem * 10)) / 240).toFixed(2);
+            document.getElementById('minGPA').innerText = ((tw + (rem * 5)) / 240).toFixed(2);
+        
+            for(let i=1; i<=4; i++) {
+                document.getElementById(`y${i}gpa`).innerText = yr[i].e > 0 ? (yr[i].w / yr[i].e).toFixed(2) : "-";
+            }
+            updateCareerTier(gpa);
          updateEffortMessage();
          }
          
-         function exportToExcel() {
-             let csv = "Year,Course,Grade,ECTS\n";
-             courses.forEach(c => csv += `${c.year},${c.name.replace(/,/g,"")},${c.grade},${c.ects}\n`);
-             const link = document.createElement("a");
-             link.href = 'data:text/csv;charset=utf-8,' + encodeURI(csv);
-             link.download = "tony_grades_export.csv";
-             link.click();
+         async function exportToExcel() {
+             // This function now acts as a "Save As..." by forcing a new file picker.
+             const originalHandle = activeFileHandle;
+             activeFileHandle = null; // Force `handleSave` to open a save dialog
+             try {
+                 await handleSave();
+             } catch (e) {
+                 console.log("Save As was cancelled or failed.");
+                 activeFileHandle = originalHandle; // Restore the original handle if save as is cancelled
+             }
          }
-         
-         function importFromExcel(event) {
-             const reader = new FileReader();
-             reader.onload = (e) => {
-                 const rows = e.target.result.split('\n').slice(1);
-                 rows.forEach((r, idx) => {
-                     const c = r.split(',');
-                     if(c.length >= 4) {
-                         courses.push({ year: parseInt(c[0]), name: c[1], grade: parseInt(c[2]), ects: parseFloat(c[3]), timestamp: Date.now() + idx });
-                     }
-                 });
-                 render(); 
-                 document.getElementById('saveNotice').style.display = 'flex';
-             };
-             reader.readAsText(event.target.files[0]);
-         }
+
          function updateEffortMessage() {
          const TOTAL_ECTS_REQUIRED = 240;
          const effortElement = document.getElementById('effort-message');
@@ -745,4 +758,3 @@ function shareSnapshot() {
       </script>
    </body>
 </html>
-
