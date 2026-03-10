@@ -1,5 +1,7 @@
 # Uni GPA Predictor
 
+To use the app, bookmark and use this link: https://usb-tonynot.github.io/UniGPAPredictor/
+
 Σύμβουλος Σπουδών & Στρατηγικής
 Οργανώστε την ακαδημαϊκή σας πορεία με το απόλυτο εργαλείο πρόβλεψης βαθμολογίας.
 
