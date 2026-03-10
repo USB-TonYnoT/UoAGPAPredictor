@@ -417,10 +417,10 @@
          <table>
             <thead>
                <tr>
-                  <th>Year</th>
-                  <th>Course</th>
-                  <th>Grade</th>
-                  <th>ECTS</th>
+                  <th style="cursor:pointer" onclick="toggleSort('year')">Year <span id="sort-year"></span></th>
+                  <th style="cursor:pointer" onclick="toggleSort('name')">Course <span id="sort-name"></span></th>
+                  <th style="cursor:pointer" onclick="toggleSort('grade')">Grade <span id="sort-grade"></span></th>
+                  <th style="cursor:pointer" onclick="toggleSort('ects')">ECTS <span id="sort-ects"></span></th>
                   <th></th>
                </tr>
             </thead>
@@ -430,6 +430,7 @@
       <script>
          let courses = [];
          let activeFileHandle = null;
+         let currentSort = { column: null, direction: 'asc' };
          
 const careerData = {
     frog: `<b>"Βάτραχος" (5.0 – 6.5)</b> - Η αγορά εργασίας είναι ανταγωνιστική και το 5άρι απαιτεί "διορθωτικές κινήσεις".
@@ -509,6 +510,7 @@ async function loadOrImportCSV() {
             }
         });
         courses = newCourses; // Replace current courses
+        currentSort = { column: null, direction: 'asc' };
         render();
         document.getElementById('saveNotice').style.display = 'none'; // Data is from a file, so it's "saved"
         return true; // Indicate success
@@ -576,6 +578,7 @@ async function initSession(mode) {
             const y = parseInt(document.getElementById('courseYear').value);
             if (!n.value) return;
             courses.unshift({ name: n.value, grade: g, ects: e, year: y, timestamp: Date.now() });
+            currentSort = { column: null, direction: 'asc' };
             n.value = '';
             document.getElementById('saveNotice').style.display = 'flex';
             render();
@@ -587,13 +590,46 @@ async function initSession(mode) {
             render();
          }
          
+         function toggleSort(column) {
+            if (currentSort.column === column) {
+               if (currentSort.direction === 'asc') currentSort.direction = 'desc';
+               else if (currentSort.direction === 'desc') {
+                  currentSort.column = null;
+                  currentSort.direction = 'asc';
+               }
+            } else {
+               currentSort.column = column;
+               currentSort.direction = 'asc';
+            }
+            render();
+         }
+
          function render() {
             const tbody = document.getElementById('courseTableBody');
             tbody.innerHTML = '';
+            
+            let displayCourses = [...courses];
+            if (currentSort.column) {
+               displayCourses.sort((a, b) => {
+                  let valA = a[currentSort.column];
+                  let valB = b[currentSort.column];
+                  if (typeof valA === 'string') valA = valA.toLowerCase();
+                  if (typeof valB === 'string') valB = valB.toLowerCase();
+                  if (valA < valB) return currentSort.direction === 'asc' ? -1 : 1;
+                  if (valA > valB) return currentSort.direction === 'asc' ? 1 : -1;
+                  return 0;
+               });
+            }
+            
+            ['year', 'name', 'grade', 'ects'].forEach(col => {
+               const icon = document.getElementById(`sort-${col}`);
+               if (icon) icon.innerText = (currentSort.column === col) ? (currentSort.direction === 'asc' ? '▲' : '▼') : '';
+            });
+
             let tw = 0, te = 0;
             let yr = { 1: {w:0, e:0}, 2: {w:0, e:0}, 3: {w:0, e:0}, 4: {w:0, e:0} };
         
-            courses.forEach(c => {
+            displayCourses.forEach(c => {
                 tw += (c.grade * c.ects); te += c.ects;
                 yr[c.year].w += (c.grade * c.ects); yr[c.year].e += c.ects;
                 tbody.innerHTML += `<tr><td>Y${c.year}</td><td>${c.name}</td><td><strong>${c.grade}</strong></td><td>${c.ects}</td><td><button class="delete-btn" onclick="deleteCourse(${c.timestamp})">×</button></td></tr>`;
@@ -758,4 +794,3 @@ function shareSnapshot() {
       </script>
    </body>
 </html>
-
