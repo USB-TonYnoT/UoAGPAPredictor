@@ -359,9 +359,9 @@
                </div>
             </div>
             <div class="action-btns">
-               <button class="btn-excel btn-import" onclick="loadOrImportCSV()">📥 Import CSV</button>
-               <button class="btn-excel" onclick="exportToExcel()">📊 Export CSV</button>
-			   <button class="btn-import" onclick="shareSnapshot()">
+               <button id="btn-import-csv" class="btn-excel btn-import" onclick="loadOrImportCSV()">📥 Import CSV</button>
+               <button id="btn-export-csv" class="btn-excel" onclick="exportToExcel()">📊 Export CSV</button>
+			   <button id="btn-snapshot" class="btn-import" onclick="shareSnapshot()">
     <span>📸</span> Snapshot
 </button>
             </div>
@@ -419,7 +419,7 @@
          </div>
          <div id="saveNotice">
             <div style="color: #e74c3c; font-weight: bold; font-size: 1.1rem;">⚠️ Unsaved Grades. Click Save Changes.</div>
-            <button onclick="handleSave()" class="btn-save-long">💾 SAVE CHANGES</button>
+            <button id="btn-save-changes" onclick="handleSave()" class="btn-save-long">💾 SAVE CHANGES</button>
          </div>
          <div class="input-group">
             <div class="field-wrap" style="flex:1"><label>Course Name</label><input type="text" id="courseName" placeholder="e.g. Econometrics"></div>
@@ -444,7 +444,7 @@
                   <option value="4">Y4</option>
                </select>
             </div>
-            <button class="btn-add" onclick="addCourse()">+ Add Course</button>
+            <button id="btn-add-course" class="btn-add" onclick="addCourse()">+ Add Course</button>
          </div>
          <table>
             <thead>
@@ -474,7 +474,12 @@ const translations = {
         'welcome-feature1': '💾 <b>Save & Import:</b> Αποθηκεύστε την πρόοδό σας σε αρχείο CSV και φορτώστε την ανά πάσα στιγμή για συνέχεια.',
         'welcome-feature2': '💻 <b>Desktop Only:</b> Η εφαρμογή λειτουργεί βέλτιστα σε <b>Windows/Mac</b> χρησιμοποιώντας <b>Chrome</b> ή <b>Edge</b> για την πλήρη υποστήριξη του συστήματος αρχείων (File System API).',
         'btn-new-degree': '<span>➕</span> Νέο Πτυχίο',
-        'btn-load-degree': '<span>📂</span> Φόρτωση'
+        'btn-load-degree': '<span>📂</span> Φόρτωση',
+        'btn-import-csv': '📥 Εισαγωγή CSV',
+        'btn-export-csv': '📊 Εξαγωγή CSV',
+        'btn-snapshot': '<span>📸</span> Στιγμιότυπο',
+        'btn-save-changes': '💾 ΑΠΟΘΗΚΕΥΣΗ ΑΛΛΑΓΩΝ',
+        'btn-add-course': '+ Προσθήκη Μαθήματος'
     },
     en: {
         'welcome-title': '🎓 Studies & Strategy Advisor',
@@ -485,7 +490,12 @@ const translations = {
         'welcome-feature1': '💾 <b>Save & Import:</b> Save your progress to a CSV file and load it at any time to continue.',
         'welcome-feature2': '💻 <b>Desktop Only:</b> The application works best on <b>Windows/Mac</b> using <b>Chrome</b> or <b>Edge</b> for full support of the File System API.',
         'btn-new-degree': '<span>➕</span> New Degree',
-        'btn-load-degree': '<span>📂</span> Load'
+        'btn-load-degree': '<span>📂</span> Load',
+        'btn-import-csv': '📥 Import CSV',
+        'btn-export-csv': '📊 Export CSV',
+        'btn-snapshot': '<span>📸</span> Snapshot',
+        'btn-save-changes': '💾 SAVE CHANGES',
+        'btn-add-course': '+ Add Course'
     }
 };
 
