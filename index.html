@@ -149,14 +149,14 @@
          filter: brightness(1.1);
          }
          table { width: 100%; border-collapse: collapse; }
-         th { padding: 12px; background: #f8f9fa; text-align: left; font-size: 0.7rem; text-transform: uppercase; color: #999; border-bottom: 2px solid #eee; }
+         th { padding: 12px; background: #f8f9fa; text-align: left; font-size: 0.7rem; text-transform: uppercase; color: #777; border-bottom: 2px solid #eee; }
          td { padding: 12px; border-bottom: 1px solid #eee; font-size: 0.95rem; }
          tr:nth-child(even) { background-color: #f9f9f9; }
          tr:hover { background-color: #e8f4fd; }
          .delete-btn { color: #e74c3c; cursor: pointer; border: none; background: none; font-size: 1.2rem; font-weight: bold; }
          .onboarding-highlight { animation: pulse 2s infinite; border: 2px solid #ffeb3b !important; box-shadow: 0 0 10px rgba(255, 235, 59, 0.5); }
          @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
-         .sort-icon { font-size: 1.2em; vertical-align: middle; }
+         .sort-icon { font-size: 1.2em; vertical-align: middle; color: #999; }
          .onboarding-highlight { animation: pulse 2s infinite; border: 2px solid #ffeb3b !important; box-shadow: 0 0 10px rgba(255, 235, 59, 0.5); }
          @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
 /* THE WIDE HERO LAYOUT */
@@ -501,10 +501,10 @@
          <table>
             <thead>
                <tr>
-                  <th style="cursor:pointer" onclick="toggleSort('year')" id="th-year">Year <span id="sort-year" class="sort-icon">⇅</span></th>
-                  <th style="cursor:pointer" onclick="toggleSort('name')" id="th-course">Course <span id="sort-name" class="sort-icon">⇅</span></th>
-                  <th style="cursor:pointer" onclick="toggleSort('grade')" id="th-grade">Grade <span id="sort-grade" class="sort-icon">⇅</span></th>
-                  <th style="cursor:pointer" onclick="toggleSort('ects')" id="th-ects">ECTS <span id="sort-ects" class="sort-icon">⇅</span></th>
+                  <th style="cursor:pointer" onclick="toggleSort('year')" id="th-year">Year &nbsp;<span id="sort-year" class="sort-icon">test</span></th>
+                  <th style="cursor:pointer" onclick="toggleSort('name')" id="th-course">Course &nbsp;<span id="sort-name" class="sort-icon">test</span></th>
+                  <th style="cursor:pointer" onclick="toggleSort('grade')" id="th-grade">Grade &nbsp;<span id="sort-grade" class="sort-icon">test</span></th>
+                  <th style="cursor:pointer" onclick="toggleSort('ects')" id="th-ects">ECTS &nbsp;<span id="sort-ects" class="sort-icon">test</span></th>
                   <th></th>
                </tr>
             </thead>
@@ -651,6 +651,14 @@ function setLanguage(lang) {
                 element.placeholder = translations[lang][key];
             } else if (element.tagName === 'OPTION') {
                 element.textContent = translations[lang][key];
+            } else if (element.tagName === 'TH') {
+                // Preserve the sort icon span, update only the text
+                const textNode = element.firstChild;
+                if (textNode && textNode.nodeType === Node.TEXT_NODE) {
+                    textNode.textContent = translations[lang][key] + ' ';
+                } else {
+                    element.innerHTML = translations[lang][key] + ' &nbsp;<span id="sort-' + key.split('-')[1] + '" class="sort-icon"></span>';
+                }
             } else {
                 element.innerHTML = translations[lang][key];
             }
@@ -673,6 +681,9 @@ function setLanguage(lang) {
     
     // Update course name placeholder
     updateCourseNamePlaceholder();
+    
+    // Update sort icons
+    render();
 }
 const careerData = {
     gr: {
@@ -859,6 +870,8 @@ async function initSession(mode) {
          }
          
          function toggleSort(column) {
+            console.log('toggleSort called with column:', column);
+            console.log('currentSort before:', currentSort);
             if (currentSort.column === column) {
                if (currentSort.direction === 'asc') currentSort.direction = 'desc';
                else if (currentSort.direction === 'desc') {
@@ -869,10 +882,16 @@ async function initSession(mode) {
                currentSort.column = column;
                currentSort.direction = 'asc';
             }
+            console.log('currentSort after:', currentSort);
+            console.log('Before render, elements:', document.getElementById('sort-year'), document.getElementById('sort-name'), document.getElementById('sort-grade'), document.getElementById('sort-ects'));
             render();
          }
 
          function render() {
+            console.log('render called, currentSort:', currentSort);
+            console.log('Checking elements:', document.getElementById('sort-year'), document.getElementById('sort-name'), document.getElementById('sort-grade'), document.getElementById('sort-ects'));
+            console.log('th elements:', document.getElementById('th-year'), document.getElementById('th-course'), document.getElementById('th-grade'), document.getElementById('th-ects'));
+            console.log('th-year innerHTML:', document.getElementById('th-year').innerHTML);
             const tbody = document.getElementById('courseTableBody');
             tbody.innerHTML = '';
             
@@ -890,13 +909,28 @@ async function initSession(mode) {
             }
             
                         ['year', 'name', 'grade', 'ects'].forEach(col => {
-                             const icon = document.getElementById(`sort-${col}`);
+                             const thId = col === 'name' ? 'course' : col;
+                             const th = document.getElementById(`th-${thId}`);
+                             let icon = th.querySelector('span');
+                             if (!icon) {
+                                 icon = document.createElement('span');
+                                 icon.id = `sort-${col}`;
+                                 icon.className = 'sort-icon';
+                                 th.appendChild(document.createTextNode('\u00A0')); // Add non-breaking space
+                                 th.appendChild(icon);
+                                 console.log(`Created icon for ${col}`);
+                             }
+                             console.log(`Updating icon for ${col}, icon element:`, icon);
                              if (icon) {
                                  if (currentSort.column === col) {
-                                     icon.innerHTML = `<span class='sort-icon'>${currentSort.direction === 'asc' ? '▲' : '▼'}</span>`;
+                                     icon.innerHTML = currentSort.direction === 'asc' ? '&#9650;' : '&#9660;';
+                                     console.log(`Set active sort icon for ${col} to:`, icon.innerHTML);
                                  } else {
-                                     icon.innerHTML = `<span class='sort-icon'>⇅</span>`;
+                                     icon.innerHTML = '&#8645;';
+                                     console.log(`Set inactive sort icon for ${col} to:`, icon.innerHTML);
                                  }
+                             } else {
+                                 console.log(`Icon element for ${col} not found`);
                              }
                         });
 
